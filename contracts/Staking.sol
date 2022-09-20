@@ -29,7 +29,6 @@ contract Staking is ReentrancyGuard {
         s_lastUpdateTime = block.timestamp;
         s_rewards[account] = earned(account);
         s_userRewardPerTokenPaid[account] = s_rewardPerTokenStored;
-
         _;
     }
 
