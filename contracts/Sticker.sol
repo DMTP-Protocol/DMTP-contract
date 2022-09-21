@@ -5,17 +5,11 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract Sticker is ERC1155, AccessControl {
-    bytes32 public constant URI_SETTER_ROLE = keccak256("URI_SETTER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    constructor(string memory uri) ERC1155(uri) {
+    constructor() ERC1155("") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(URI_SETTER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
-    }
-
-    function setURI(string memory newuri) public onlyRole(URI_SETTER_ROLE) {
-        _setURI(newuri);
     }
 
     function mint(

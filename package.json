@@ -1,6 +1,7 @@
 {
   "scripts": {
     "compile": "truffle compile",
+    "verify": "node ./scripts/verify.js",
     "deploy": "yarn compile && hardhat run --network polygon ./scripts/deploy.js"
   },
   "dependencies": {
