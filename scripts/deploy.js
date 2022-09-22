@@ -14,13 +14,13 @@ async function main() {
   // deploy lockdata contracts
   const dmtp = await DMTP.deploy();
   const stdmtp = await stDMTP.deploy();
-  const sticker = await Sticker.deploy("baseURI");
-  const whitelist = await Whitelist.deploy(
-    process.env.WHITELIST_ADDRESS.split(","),
-    process.env.WHITELIST_TOKEN_ADDRESS,
-    sticker.address,
-    process.env.WHITELIST_ENDTIME
-  );
+  const sticker = await Sticker.deploy();
+  // const whitelist = await Whitelist.deploy(
+  //   process.env.WHITELIST_ADDRESS.split(","),
+  //   process.env.WHITELIST_TOKEN_ADDRESS,
+  //   sticker.address,
+  //   process.env.WHITELIST_ENDTIME
+  // );
 
   const contractDeployed = {
     DMTP: {
@@ -38,11 +38,11 @@ async function main() {
       abi: require("../build/contracts/Sticker.json").abi,
       contractName: require("../build/contracts/Sticker.json").contractName,
     },
-    Whitelist: {
-      address: whitelist.address,
-      abi: require("../build/contracts/Whitelist.json").abi,
-      contractName: require("../build/contracts/Whitelist.json").contractName,
-    },
+    // Whitelist: {
+    //   address: whitelist.address,
+    //   abi: require("../build/contracts/Whitelist.json").abi,
+    //   contractName: require("../build/contracts/Whitelist.json").contractName,
+    // },
   };
 
   fs.writeFileSync("./config.json", JSON.stringify(contractDeployed));
