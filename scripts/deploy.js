@@ -9,18 +9,13 @@ async function main() {
   const DMTP = await ethers.getContractFactory("DMTP");
   const stDMTP = await ethers.getContractFactory("stDMTP");
   const Sticker = await ethers.getContractFactory("Sticker");
-  const Whitelist = await ethers.getContractFactory("Whitelist");
+  const DMTPMarket = await ethers.getContractFactory("DMTPMarket");
 
-  // deploy lockdata contracts
+  // deploy contracts
   const dmtp = await DMTP.deploy();
   const stdmtp = await stDMTP.deploy();
   const sticker = await Sticker.deploy();
-  // const whitelist = await Whitelist.deploy(
-  //   process.env.WHITELIST_ADDRESS.split(","),
-  //   process.env.WHITELIST_TOKEN_ADDRESS,
-  //   sticker.address,
-  //   process.env.WHITELIST_ENDTIME
-  // );
+  const dmtpmarket = await DMTPMarket.deploy(dmtp.address, sticker.address);
 
   const contractDeployed = {
     DMTP: {
@@ -38,11 +33,12 @@ async function main() {
       abi: require("../build/contracts/Sticker.json").abi,
       contractName: require("../build/contracts/Sticker.json").contractName,
     },
-    // Whitelist: {
-    //   address: whitelist.address,
-    //   abi: require("../build/contracts/Whitelist.json").abi,
-    //   contractName: require("../build/contracts/Whitelist.json").contractName,
-    // },
+    DMTPMarket: {
+      address: dmtpmarket.address,
+      abi: require("../build/contracts/DMTPMarket.json").abi,
+      contractName: require("../build/contracts/DMTPMarket.json").contractName,
+      input: [dmtp.address, sticker.address],
+    },
   };
 
   fs.writeFileSync("./config.json", JSON.stringify(contractDeployed));
