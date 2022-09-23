@@ -88,7 +88,6 @@ contract DMTPMarket {
      * @dev set price for sticker.
      *
      * Requirements:
-     *
      * - `msg.sender` must be owner of sticker.
      * - `msg.sender` must be have `MINTER_ROLE`.
      * - `status` equa None for disallow to buy sticker.
@@ -155,7 +154,8 @@ contract DMTPMarket {
      * @dev set price for sticker.
      *
      * Requirements:
-     *
+     * - `msg.sender` must be have `appvore` erc20 token on this contract before call this function.
+     * - `sticker` owner must be have `appvore` erc721 sticker nft on this contract before this function call.
      * - `stickerId` must be exist.
      * - `stickerId` must be for sale.
      * - `msg.sender` must be in whitelist if sticker have whitelist.
@@ -176,5 +176,6 @@ contract DMTPMarket {
             stickerId
         );
         delete _stickerPrice[stickerId];
+        delete _whitelist[stickerId];
     }
 }
