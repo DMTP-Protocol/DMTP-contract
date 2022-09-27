@@ -126,7 +126,7 @@ contract DMTPMarket {
     }
 
     /**
-     * @dev set price for sticker.
+     * @dev set whitelist for sticker.
      *
      * Requirements:
      *
@@ -151,7 +151,7 @@ contract DMTPMarket {
     }
 
     /**
-     * @dev set price for sticker.
+     * @dev buy sticker.
      *
      * Requirements:
      * - `msg.sender` must be have `appvore` erc20 token on this contract before call this function.

@@ -2,110 +2,183 @@
 
 pragma solidity ^0.8.7;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-error Staking_TransferFailed();
-error Withdraw_TransferFailed();
-error Staking_NeedsMoreThanZero();
+// Inheritance
+// import "./interfaces/IStakingRewards.sol";
+// import "./RewardsDistributionRecipient.sol";
+// import "./Pausable.sol";
 
-contract Staking is ReentrancyGuard {
-    IERC20 public s_stakingToken;
-    IERC20 public s_rewardToken;
+// https://docs.synthetix.io/contracts/source/contracts/stakingrewards
+contract StakingRewards is ReentrancyGuard {
+    /* ========== STATE VARIABLES ========== */
 
-    uint256 public constant REWARD_RATE = 100;
-    uint256 public s_totalSupply;
-    uint256 public s_rewardPerTokenStored;
-    uint256 public s_lastUpdateTime;
+    IERC20 public rewardsToken;
+    IERC20 public stakingToken;
+    uint256 public periodFinish = 0;
+    uint256 public rewardRate = 0;
+    uint256 public rewardsDuration = 1 days;
+    uint256 public lastUpdateTime;
+    uint256 public rewardPerTokenStored;
 
-    mapping(address => uint256) public s_balances;
+    mapping(address => uint256) public userRewardPerTokenPaid;
+    mapping(address => uint256) public rewards;
 
-    mapping(address => uint256) public s_userRewardPerTokenPaid;
+    uint256 private _totalSupply;
+    mapping(address => uint256) private _balances;
 
-    mapping(address => uint256) public s_rewards;
+    /* ========== CONSTRUCTOR ========== */
 
-    modifier updateReward(address account) {
-        s_rewardPerTokenStored = rewardPerToken();
-        s_lastUpdateTime = block.timestamp;
-        s_rewards[account] = earned(account);
-        s_userRewardPerTokenPaid[account] = s_rewardPerTokenStored;
-
-        _;
+    constructor(address _rewardsToken, address _stakingToken) {
+        rewardsToken = IERC20(_rewardsToken);
+        stakingToken = IERC20(_stakingToken);
+        // rewardsDistribution = _rewardsDistribution;
     }
 
-    modifier moreThanZero(uint256 amount) {
-        if (amount == 0) {
-            revert Staking_NeedsMoreThanZero();
-        }
-        _;
+    /* ========== VIEWS ========== */
+
+    function totalSupply() external view returns (uint256) {
+        return _totalSupply;
     }
 
-    constructor(address stakingToken, address rewardToken) {
-        s_stakingToken = IERC20(stakingToken);
-        s_rewardToken = IERC20(rewardToken);
+    function balanceOf(address account) external view returns (uint256) {
+        return _balances[account];
     }
 
-    function earned(address account) public view returns (uint256) {
-        uint256 currentBalance = s_balances[account];
-        uint256 amountPaid = s_userRewardPerTokenPaid[account];
-        uint256 currentRewardPerToken = rewardPerToken();
-        uint256 pastRewards = s_rewards[account];
-        uint256 _earned = ((currentBalance *
-            (currentRewardPerToken - amountPaid)) / 1e18) + pastRewards;
-
-        return _earned;
+    function lastTimeRewardApplicable() public view returns (uint256) {
+        return block.timestamp < periodFinish ? block.timestamp : periodFinish;
     }
 
     function rewardPerToken() public view returns (uint256) {
-        if (s_totalSupply == 0) {
-            return s_rewardPerTokenStored;
-        } else {
-            return
-                s_rewardPerTokenStored +
-                (((block.timestamp - s_lastUpdateTime) * REWARD_RATE * 1e18) /
-                    s_totalSupply);
+        if (_totalSupply == 0) {
+            return rewardPerTokenStored;
         }
+        return
+            rewardPerTokenStored +
+            (((lastTimeRewardApplicable() - lastUpdateTime) *
+                rewardRate *
+                1e18) / _totalSupply);
     }
+
+    function earned(address account) public view returns (uint256) {
+        return
+            (_balances[account] *
+                (rewardPerToken() - userRewardPerTokenPaid[account])) /
+            1e18 +
+            rewards[account];
+    }
+
+    function getRewardForDuration() external view returns (uint256) {
+        return rewardRate * rewardsDuration;
+    }
+
+    /* ========== MUTATIVE FUNCTIONS ========== */
 
     function stake(uint256 amount)
         external
+        nonReentrant
         updateReward(msg.sender)
-        moreThanZero(amount)
     {
-        s_balances[msg.sender] += amount;
-        s_totalSupply += amount;
-        bool success = s_stakingToken.transferFrom(
-            msg.sender,
-            address(this),
-            amount
-        );
-        if (!success) {
-            revert Staking_TransferFailed();
-        }
+        require(amount > 0, "Cannot stake 0");
+        _totalSupply = _totalSupply + amount;
+        _balances[msg.sender] = _balances[msg.sender] + amount;
+        stakingToken.transferFrom(msg.sender, address(this), amount);
+        emit Staked(msg.sender, amount);
     }
 
     function withdraw(uint256 amount)
-        external
+        public
+        nonReentrant
         updateReward(msg.sender)
-        moreThanZero(amount)
     {
-        s_balances[msg.sender] -= amount;
-        s_totalSupply -= amount;
-        bool success = s_stakingToken.transfer(msg.sender, amount);
-        if (!success) {
-            revert Withdraw_TransferFailed();
+        require(amount > 0, "Cannot withdraw 0");
+        _totalSupply = _totalSupply - amount;
+        _balances[msg.sender] = _balances[msg.sender] - amount;
+        stakingToken.transfer(msg.sender, amount);
+        emit Withdrawn(msg.sender, amount);
+    }
+
+    function getReward() public nonReentrant updateReward(msg.sender) {
+        uint256 reward = rewards[msg.sender];
+        if (reward > 0) {
+            rewards[msg.sender] = 0;
+            rewardsToken.transfer(msg.sender, reward);
+            emit RewardPaid(msg.sender, reward);
         }
     }
 
-    function claimReward() external updateReward(msg.sender) {
-        uint256 reward = s_rewards[msg.sender];
-        bool success = s_rewardToken.transfer(msg.sender, reward);
-        if (!success) {
-            revert Staking_TransferFailed();
-        }
+    function exit() external {
+        withdraw(_balances[msg.sender]);
+        getReward();
     }
 
-    function getStaked(address account) public view returns (uint256) {
-        return s_balances[account];
+    /* ========== RESTRICTED FUNCTIONS ========== */
+
+    function notifyRewardAmount(uint256 reward)
+        external
+        updateReward(address(0))
+    {
+        if (block.timestamp >= periodFinish) {
+            rewardRate = reward / rewardsDuration;
+        } else {
+            uint256 remaining = periodFinish - block.timestamp;
+            uint256 leftover = remaining * rewardRate;
+            rewardRate = reward + leftover / rewardsDuration;
+        }
+
+        // Ensure the provided reward amount is not more than the balance in the contract.
+        // This keeps the reward rate in the right range, preventing overflows due to
+        // very high values of rewardRate in the earned and rewardsPerToken functions;
+        // Reward + leftover must be less than 2^256 / 10^18 to avoid overflow.
+        uint256 balance = rewardsToken.balanceOf(address(this));
+        require(
+            rewardRate <= balance / rewardsDuration,
+            "Provided reward too high"
+        );
+
+        lastUpdateTime = block.timestamp;
+        periodFinish = block.timestamp + rewardsDuration;
+        emit RewardAdded(reward);
     }
+
+    // Added to support recovering LP Rewards from other systems such as BAL to be distributed to holders
+    // function recoverERC20(address tokenAddress, uint256 tokenAmount) external {
+    //     require(
+    //         tokenAddress != address(stakingToken),
+    //         "Cannot withdraw the staking token"
+    //     );
+    //     IERC20(tokenAddress).safeTransfer(owner, tokenAmount);
+    //     emit Recovered(tokenAddress, tokenAmount);
+    // }
+
+    function setRewardsDuration(uint256 _rewardsDuration) external {
+        require(
+            block.timestamp > periodFinish,
+            "Previous rewards period must be complete before changing the duration for the new period"
+        );
+        rewardsDuration = _rewardsDuration;
+        emit RewardsDurationUpdated(rewardsDuration);
+    }
+
+    /* ========== MODIFIERS ========== */
+
+    modifier updateReward(address account) {
+        rewardPerTokenStored = rewardPerToken();
+        lastUpdateTime = lastTimeRewardApplicable();
+        if (account != address(0)) {
+            rewards[account] = earned(account);
+            userRewardPerTokenPaid[account] = rewardPerTokenStored;
+        }
+        _;
+    }
+
+    /* ========== EVENTS ========== */
+
+    event RewardAdded(uint256 reward);
+    event Staked(address indexed user, uint256 amount);
+    event Withdrawn(address indexed user, uint256 amount);
+    event RewardPaid(address indexed user, uint256 reward);
+    event RewardsDurationUpdated(uint256 newDuration);
+    // event Recovered(address token, uint256 amount);
 }

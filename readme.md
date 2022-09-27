@@ -12,11 +12,11 @@
 |   🚀   | processing |
 |   ✔    |    done    |
 
-| Status | API                 | Description |
-| :----: | :------------------ | ----------- |
-|   🚀   | DMTP ERC20          |             |
-|   🚀   | stDMTP ERC20        |             |
-|   🚀   | Whitelist airdrop   |             |
-|   🚀   | Sticker NFT ERC1155 |             |
-|   ❌   | Market sticker NFT  |             |
-|   ❌   | Staking DMTP        |             |
+| Status | API                 | Description               |
+| :----: | :------------------ | ------------------------- |
+|   ✔    | DMTP ERC20          |                           |
+|   ✔    | stDMTP ERC20        |                           |
+|   ✔    | Sticker NFT ERC1155 |                           |
+|   ✔    | Market sticker NFT  | Include Whitelist airdrop |
+|   🚀   | Staking DMTP        |                           |
+|   ❌   | MessageProtocol     |                           |
