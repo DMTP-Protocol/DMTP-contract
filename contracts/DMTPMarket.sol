@@ -26,7 +26,11 @@ struct StickerWhitelist {
 }
 
 contract DMTPMarket {
-    event SetPrice(uint256 indexed stickerId, uint256 indexed price);
+    event SetPrice(
+        uint256 indexed stickerId,
+        uint256 indexed price,
+        StickerStatus indexed status
+    );
     event SetWhiteList(
         uint256 indexed stickerId,
         address[] indexed whitelist,
@@ -114,16 +118,13 @@ contract DMTPMarket {
         uint256 price,
         address[] memory whitelist
     ) public onlyMintRole onlyOwner(stickerId) {
-        require(
-            status == StickerStatus.Free && price == 0,
-            "DMTPMarket: price must be 0 when price type is free"
-        );
-        require(
-            status == StickerStatus.Fixed && price > 0,
-            "DMTPMarket: price must be greater than 0 when price type is fixed"
-        );
+        if (status == StickerStatus.Fixed) {
+            require(price > 0, "DMTPMarket: price must be greater than 0");
+        } else if (status == StickerStatus.Free) {
+            require(price == 0, "DMTPMarket: price must be equal 0");
+        }
         _stickerPrice[stickerId] = StickerPrice(status, price);
-        emit SetPrice(stickerId, price);
+        emit SetPrice(stickerId, price, status);
         if (whitelist.length == 0) {
             delete _whitelist[stickerId];
             emit ClearWhitelist(stickerId);
