@@ -26,6 +26,15 @@ struct StickerWhitelist {
 }
 
 contract DMTPMarket {
+    event SetPrice(uint256 indexed stickerId, uint256 indexed price);
+    event SetWhiteList(
+        uint256 indexed stickerId,
+        address[] indexed whitelist,
+        bool indexed allow
+    );
+    event ClearWhitelist(uint256 indexed stickerId);
+    event Buy(uint256 indexed stickerId, address indexed buyer);
+
     bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
     mapping(uint256 => StickerWhitelist) private _whitelist;
     mapping(uint256 => StickerPrice) private _stickerPrice;
@@ -73,7 +82,7 @@ contract DMTPMarket {
     }
 
     /**
-     * @dev Revert with a standard message if `msg.sender` is not in whitelist to buy sticker, in case sticker have whitelist.
+     * @dev Revert with a standard message if `msg.sender` is not in whitelist to Buy sticker, in case sticker have whitelist.
      */
     modifier onlyWhitelist(uint256 stickerId) {
         if (_whitelist[stickerId].status == WhitelistStatus.Fixed)
@@ -90,14 +99,14 @@ contract DMTPMarket {
      * Requirements:
      * - `msg.sender` must be owner of sticker.
      * - `msg.sender` must be have `MINTER_ROLE`.
-     * - `status` equa None for disallow to buy sticker.
+     * - `status` equa None for disallow to Buy sticker.
      * - `status` equa Free for airdrop sticker.
      * - `status` equa Fixed for sale sticker.
      * - `price` must be equal 0 when `status` equa Free.
      * - `price` must be greater than 0 when `status` equa Fixed.
      * - `price` will be dont care when `status` equa None.
-     * - `whitelist` empty when everyone can buy.
-     * - `whitelist` not empty when only address in whitelist can buy.
+     * - `whitelist` empty when everyone can Buy.
+     * - `whitelist` not empty when only address in whitelist can Buy.
      */
     function setStickerPrice(
         uint256 stickerId,
@@ -114,14 +123,16 @@ contract DMTPMarket {
             "DMTPMarket: price must be greater than 0 when price type is fixed"
         );
         _stickerPrice[stickerId] = StickerPrice(status, price);
-
+        emit SetPrice(stickerId, price);
         if (whitelist.length == 0) {
             delete _whitelist[stickerId];
+            emit ClearWhitelist(stickerId);
         } else {
             _whitelist[stickerId].status = WhitelistStatus.Fixed;
             for (uint256 i = 0; i < whitelist.length; i++) {
                 _whitelist[stickerId].whitelist[whitelist[i]] = true;
             }
+            emit SetWhiteList(stickerId, whitelist, true);
         }
     }
 
@@ -132,26 +143,28 @@ contract DMTPMarket {
      *
      * - `msg.sender` must be owner of sticker.
      * - `msg.sender` must be have `MINTER_ROLE`.
-     * - `whitelist` empty when everyone can buy.
-     * - `whitelist` not empty when only address in whitelist can buy.
+     * - `whitelist` empty when everyone can Buy.
+     * - `whitelist` not empty when only address in whitelist can Buy.
      */
-    function setWhitelist(
+    function setStickerWhitelist(
         uint256 stickerId,
         address[] memory whitelist,
         bool allow
     ) external onlyMintRole onlyOwner(stickerId) {
         if (whitelist.length == 0) {
             delete _whitelist[stickerId];
+            emit ClearWhitelist(stickerId);
         } else {
             _whitelist[stickerId].status = WhitelistStatus.Fixed;
             for (uint256 i = 0; i < whitelist.length; i++) {
                 _whitelist[stickerId].whitelist[whitelist[i]] = allow;
             }
+            emit SetWhiteList(stickerId, whitelist, allow);
         }
     }
 
     /**
-     * @dev buy sticker.
+     * @dev Buy sticker.
      *
      * Requirements:
      * - `msg.sender` must be have `appvore` erc20 token on this contract before call this function.
@@ -177,5 +190,6 @@ contract DMTPMarket {
         );
         delete _stickerPrice[stickerId];
         delete _whitelist[stickerId];
+        emit Buy(stickerId, msg.sender);
     }
 }
