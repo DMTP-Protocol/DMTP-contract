@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/access/IAccessControl.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 enum StickerStatus {
     None,
@@ -31,13 +32,13 @@ contract DMTPMarket {
         uint256 indexed price,
         StickerStatus indexed status
     );
-    event SetWhiteList(
-        uint256 indexed stickerId,
-        address[] indexed whitelist,
-        bool indexed allow
-    );
+    event SetWhiteList(uint256 indexed stickerId, string indexed whitelist);
     event ClearWhitelist(uint256 indexed stickerId);
-    event Buy(uint256 indexed stickerId, address indexed buyer);
+    event Buy(
+        uint256 indexed stickerId,
+        address indexed buyer,
+        uint256 indexed price
+    );
 
     bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
     mapping(uint256 => StickerWhitelist) private _whitelist;
@@ -133,7 +134,8 @@ contract DMTPMarket {
             for (uint256 i = 0; i < whitelist.length; i++) {
                 _whitelist[stickerId].whitelist[whitelist[i]] = true;
             }
-            emit SetWhiteList(stickerId, whitelist, true);
+
+            emit SetWhiteList(stickerId, joinAddress(whitelist));
         }
     }
 
@@ -147,20 +149,20 @@ contract DMTPMarket {
      * - `whitelist` empty when everyone can Buy.
      * - `whitelist` not empty when only address in whitelist can Buy.
      */
-    function setStickerWhitelist(
-        uint256 stickerId,
-        address[] memory whitelist,
-        bool allow
-    ) external onlyMintRole onlyOwner(stickerId) {
+    function setStickerWhitelist(uint256 stickerId, address[] memory whitelist)
+        external
+        onlyMintRole
+        onlyOwner(stickerId)
+    {
         if (whitelist.length == 0) {
             delete _whitelist[stickerId];
             emit ClearWhitelist(stickerId);
         } else {
             _whitelist[stickerId].status = WhitelistStatus.Fixed;
             for (uint256 i = 0; i < whitelist.length; i++) {
-                _whitelist[stickerId].whitelist[whitelist[i]] = allow;
+                _whitelist[stickerId].whitelist[whitelist[i]] = true;
             }
-            emit SetWhiteList(stickerId, whitelist, allow);
+            emit SetWhiteList(stickerId, joinAddress(whitelist));
         }
     }
 
@@ -191,6 +193,24 @@ contract DMTPMarket {
         );
         delete _stickerPrice[stickerId];
         delete _whitelist[stickerId];
-        emit Buy(stickerId, msg.sender);
+        emit Buy(stickerId, msg.sender, _stickerPrice[stickerId].price);
+    }
+
+    function joinAddress(address[] memory addresses)
+        private
+        pure
+        returns (string memory)
+    {
+        bytes memory output;
+
+        for (uint256 i = 0; i < addresses.length; i++) {
+            output = abi.encodePacked(
+                output,
+                ",",
+                Strings.toHexString(addresses[i])
+            );
+        }
+
+        return string(output);
     }
 }
