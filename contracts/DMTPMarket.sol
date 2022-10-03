@@ -32,7 +32,7 @@ contract DMTPMarket {
         uint256 indexed price,
         StickerStatus indexed status
     );
-    event SetWhiteList(uint256 indexed stickerId, string indexed whitelist);
+    event SetWhiteList(uint256 indexed stickerId, string whitelist);
     event ClearWhitelist(uint256 indexed stickerId);
     event Buy(
         uint256 indexed stickerId,
