@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/access/IAccessControl.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -19,6 +19,8 @@ enum WhitelistStatus {
 struct StickerPrice {
     StickerStatus status;
     uint256 price;
+    address seller;
+    uint256 amount;
 }
 
 struct StickerWhitelist {
@@ -43,13 +45,14 @@ contract DMTPMarket {
     bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
     mapping(uint256 => StickerWhitelist) private _whitelist;
     mapping(uint256 => StickerPrice) private _stickerPrice;
+
     IERC20 private _token;
-    IERC721 private _sticker;
+    IERC1155 private _sticker;
     IAccessControl private _accessControl;
 
     constructor(address token, address sticker) {
         _token = IERC20(token);
-        _sticker = IERC721(sticker);
+        _sticker = IERC1155(sticker);
         _accessControl = IAccessControl(sticker);
     }
 
@@ -80,7 +83,7 @@ contract DMTPMarket {
      */
     modifier onlyOwner(uint256 stickerId) {
         require(
-            _sticker.ownerOf(stickerId) == msg.sender,
+            _sticker.balanceOf(msg.sender, stickerId) > 0,
             "DMTPMarket: only owner"
         );
         _;
@@ -115,16 +118,23 @@ contract DMTPMarket {
      */
     function setStickerPrice(
         uint256 stickerId,
-        StickerStatus status,
+        uint256 amount,
         uint256 price,
+        bool sellable,
         address[] memory whitelist
     ) public onlyMintRole onlyOwner(stickerId) {
-        if (status == StickerStatus.Fixed) {
-            require(price > 0, "DMTPMarket: price must be greater than 0");
-        } else if (status == StickerStatus.Free) {
-            require(price == 0, "DMTPMarket: price must be equal 0");
+        StickerStatus status;
+        if (sellable) {
+            if (price > 0) status = StickerStatus.Fixed;
+            else status = StickerStatus.Free;
         }
-        _stickerPrice[stickerId] = StickerPrice(status, price);
+
+        _stickerPrice[stickerId] = StickerPrice(
+            status,
+            price,
+            msg.sender,
+            amount
+        );
         emit SetPrice(stickerId, price, status);
         if (whitelist.length == 0) {
             delete _whitelist[stickerId];
@@ -134,8 +144,32 @@ contract DMTPMarket {
             for (uint256 i = 0; i < whitelist.length; i++) {
                 _whitelist[stickerId].whitelist[whitelist[i]] = true;
             }
-
             emit SetWhiteList(stickerId, joinAddress(whitelist));
+        }
+    }
+
+    function setStickerPriceBatch(
+        uint256[] memory stickerIds,
+        uint256[] memory amounts,
+        uint256[] memory prices,
+        bool[] memory sellables,
+        address[][] memory whitelists
+    ) public {
+        require(
+            stickerIds.length == prices.length &&
+                stickerIds.length == amounts.length &&
+                stickerIds.length == sellables.length &&
+                stickerIds.length == whitelists.length,
+            "DMTPMarket: length not match"
+        );
+        for (uint256 i = 0; i < stickerIds.length; i++) {
+            setStickerPrice(
+                stickerIds[i],
+                amounts[i],
+                prices[i],
+                sellables[i],
+                whitelists[i]
+            );
         }
     }
 
@@ -150,7 +184,7 @@ contract DMTPMarket {
      * - `whitelist` not empty when only address in whitelist can Buy.
      */
     function setStickerWhitelist(uint256 stickerId, address[] memory whitelist)
-        external
+        public
         onlyMintRole
         onlyOwner(stickerId)
     {
@@ -163,6 +197,19 @@ contract DMTPMarket {
                 _whitelist[stickerId].whitelist[whitelist[i]] = true;
             }
             emit SetWhiteList(stickerId, joinAddress(whitelist));
+        }
+    }
+
+    function setStickerWhitelistBatch(
+        uint256[] memory stickerIds,
+        address[][] memory whitelist
+    ) public {
+        require(
+            stickerIds.length == whitelist.length,
+            "DMTPMarket: stickerIds and whitelist length not match"
+        );
+        for (uint256 i = 0; i < stickerIds.length; i++) {
+            setStickerWhitelist(stickerIds[i], whitelist[i]);
         }
     }
 
@@ -181,15 +228,24 @@ contract DMTPMarket {
         onlyStickerSale(stickerId)
         onlyWhitelist(stickerId)
     {
-        _token.transferFrom(
-            msg.sender,
-            _sticker.ownerOf(stickerId),
-            _stickerPrice[stickerId].price
+        require(
+            _sticker.balanceOf(msg.sender, stickerId) == 0,
+            "DMTPMarket: only own one sticker"
         );
-        _sticker.transferFrom(
-            _sticker.ownerOf(stickerId),
+        StickerPrice memory stickerPrice = _stickerPrice[stickerId];
+        require(
+            stickerPrice.amount > 0,
+            "DMTPMarket: sticker amount not enough"
+        );
+        uint256 price = stickerPrice.price;
+
+        _token.transferFrom(msg.sender, stickerPrice.seller, price);
+        _sticker.safeTransferFrom(
+            stickerPrice.seller,
             msg.sender,
-            stickerId
+            stickerId,
+            1,
+            ""
         );
         delete _stickerPrice[stickerId];
         delete _whitelist[stickerId];
