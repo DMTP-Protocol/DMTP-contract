@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
+import "@openzeppelin/contracts/access/IAccessControl.sol";
 
-interface IDMTPMarket {
+interface IDMTPMarket is IAccessControl {
     enum StickerPriceType {
         None,
         Fixed,
@@ -26,18 +27,19 @@ interface IDMTPMarket {
         WhitelistType whitelistType;
         mapping(address => bool) whitelist;
     }
-    event SetPrice(
+    event NewSticker(
         uint256 indexed stickerId,
         uint256 indexed price,
         address token,
-        StickerPriceType indexed priceType
+        StickerPriceType priceType,
+        WhitelistType whitelistType,
+        string whitelist
     );
-    event SetWhiteList(uint256 indexed stickerId, string whitelist);
-    event NoWhitelist(uint256 indexed stickerId);
     event Buy(
         uint256 indexed stickerId,
         address indexed buyer,
-        uint256 indexed price
+        uint256 indexed price,
+        address token
     );
 
     function setStickerPrice(
@@ -61,4 +63,6 @@ interface IDMTPMarket {
     function buy(uint256 stickerId) external;
 
     function stickerURI(uint256 id) external view returns (string memory);
+
+    function stickerLeft(uint256 id) external view returns (uint256);
 }

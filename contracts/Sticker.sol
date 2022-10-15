@@ -7,7 +7,8 @@ import "./interfaces/IDMTPMarket.sol";
 
 contract Sticker is ISticker, ERC1155 {
     mapping(uint256 => string) private _tokenURIs;
-
+    bytes32 public constant ACCESS_STICKER_ROLE =
+        keccak256("ACCESS_STICKER_ROLE");
     IDMTPMarket private _market;
 
     constructor(address market) ERC1155("") {
@@ -20,6 +21,10 @@ contract Sticker is ISticker, ERC1155 {
         uint256 amount,
         string memory _uri
     ) public override {
+        require(
+            _market.hasRole(ACCESS_STICKER_ROLE, msg.sender),
+            "Sticker: only market can mint"
+        );
         _tokenURIs[id] = _uri;
         _mint(account, id, amount, "");
     }
@@ -30,6 +35,10 @@ contract Sticker is ISticker, ERC1155 {
         uint256[] memory amounts,
         string[] memory uris
     ) public override {
+        require(
+            _market.hasRole(ACCESS_STICKER_ROLE, msg.sender),
+            "Sticker: only market can mint"
+        );
         require(amounts.length == uris.length, "Sticker: INVALID_INPUT_LENGTH");
         for (uint256 i = 0; i < uris.length; i++) {
             _tokenURIs[ids[i]] = uris[i];

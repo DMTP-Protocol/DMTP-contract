@@ -11,14 +11,20 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
     mapping(uint256 => Sticker) private _stickerData;
     mapping(uint256 => uint256) private _stickerAmountLeft;
     uint256 private _currentTokenID = 0;
-    bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
-
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant ACCESS_STICKER_ROLE =
+        keccak256("ACCESS_STICKER_ROLE");
     ISticker private _sticker;
 
-    constructor() {}
+    constructor(address adminAddress) {
+        _grantRole(DEFAULT_ADMIN_ROLE, adminAddress);
+        _grantRole(MINTER_ROLE, adminAddress);
+    }
 
     function setSticker(address sticker) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_sticker == ISticker(address(0)), "DMTPMarket: ALREADY_SET");
         _sticker = ISticker(sticker);
+        _grantRole(ACCESS_STICKER_ROLE, address(this));
     }
 
     /**
@@ -76,16 +82,20 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
             amount
         );
         _stickerAmountLeft[_currentTokenID] = amount;
-        emit SetPrice(_currentTokenID, price, token, priceType);
-        if (whitelist.length == 0) {
-            emit NoWhitelist(_currentTokenID);
-        } else {
+        if (whitelist.length != 0) {
             _whitelist[_currentTokenID].whitelistType = WhitelistType.Fixed;
             for (uint256 i = 0; i < whitelist.length; i++) {
                 _whitelist[_currentTokenID].whitelist[whitelist[i]] = true;
             }
-            emit SetWhiteList(_currentTokenID, joinAddress(whitelist));
         }
+        emit NewSticker(
+            _currentTokenID,
+            price,
+            token,
+            priceType,
+            _whitelist[_currentTokenID].whitelistType,
+            joinAddress(whitelist)
+        );
     }
 
     function setStickerPriceBatch(
@@ -124,7 +134,7 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         return _stickerData[id].uri;
     }
 
-    function stickerLeft(uint256 id) public view returns (uint256) {
+    function stickerLeft(uint256 id) public view override returns (uint256) {
         return _stickerAmountLeft[id];
     }
 
@@ -148,7 +158,7 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
             );
         }
         _sticker.mint(stickerId, msg.sender, 1, sticker.uri);
-        emit Buy(stickerId, msg.sender, sticker.price);
+        emit Buy(stickerId, msg.sender, sticker.price, sticker.token);
     }
 
     function joinAddress(address[] memory addresses)
