@@ -19,7 +19,6 @@ interface IDMTPMarket is IAccessControl {
         StickerPriceType priceType;
         address token;
         uint256 price;
-        address seller;
         uint256 amount;
     }
 

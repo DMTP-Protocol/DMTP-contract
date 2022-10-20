@@ -11,14 +11,16 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
     mapping(uint256 => Sticker) private _stickerData;
     mapping(uint256 => uint256) private _stickerAmountLeft;
     uint256 private _currentTokenID = 0;
+    address private _holdTokenAddress;
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant ACCESS_STICKER_ROLE =
         keccak256("ACCESS_STICKER_ROLE");
     ISticker private _sticker;
 
-    constructor(address adminAddress) {
+    constructor(address adminAddress, address holdTokenAddress) {
         _grantRole(DEFAULT_ADMIN_ROLE, adminAddress);
         _grantRole(MINTER_ROLE, adminAddress);
+        _holdTokenAddress = holdTokenAddress;
     }
 
     function setSticker(address sticker) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -78,7 +80,6 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
             priceType,
             token,
             price,
-            msg.sender,
             amount
         );
         _stickerAmountLeft[_currentTokenID] = amount;
@@ -141,6 +142,7 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
 
     function buy(uint256 stickerId)
         external
+        override
         onlyStickerSale(stickerId)
         onlyWhitelist(stickerId)
     {
@@ -154,7 +156,7 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         if (sticker.priceType == StickerPriceType.Fixed) {
             IERC20(sticker.token).transferFrom(
                 msg.sender,
-                sticker.seller,
+                _holdTokenAddress,
                 sticker.price
             );
         }

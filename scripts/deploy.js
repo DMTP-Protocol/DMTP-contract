@@ -14,7 +14,10 @@ async function main() {
   // deploy contracts
   const dmtp = await DMTP.deploy();
   const stdmtp = await stDMTP.deploy();
-  const dmtpmarket = await DMTPMarket.deploy(deployer.address);
+  const dmtpmarket = await DMTPMarket.deploy(
+    deployer.address,
+    deployer.address
+  );
   const sticker = await Sticker.deploy(dmtpmarket.address);
 
   await sticker.deployed();
@@ -42,7 +45,7 @@ async function main() {
       address: dmtpmarket.address,
       abi: require("../build/contracts/DMTPMarket.json").abi,
       contractName: require("../build/contracts/DMTPMarket.json").contractName,
-      input: [deployer.address],
+      input: [deployer.address, deployer.address],
     },
   };
 
