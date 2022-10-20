@@ -31,6 +31,7 @@ interface IDMTPMarket is IAccessControl {
         uint256 indexed stickerId,
         uint256 indexed price,
         address token,
+        uint256 amount,
         StickerPriceType priceType,
         WhitelistType whitelistType,
         string whitelist
