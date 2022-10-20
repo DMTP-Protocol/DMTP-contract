@@ -92,6 +92,7 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
             _currentTokenID,
             price,
             token,
+            amount,
             priceType,
             _whitelist[_currentTokenID].whitelistType,
             joinAddress(whitelist)
