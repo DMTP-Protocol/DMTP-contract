@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
+import "./interfaces/IDMTPMessages.sol";
 
-contract DMTPMessages{
+contract DMTPMessages is IDMTPMessages{
   mapping(address => mapping(address => bool)) delegators;
 
   event DelgetorSet(address indexed wallet, address indexed delegator);
