@@ -10,7 +10,7 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
     mapping(uint256 => Whitelist) private _whitelist;
     mapping(uint256 => Sticker) private _stickerData;
     mapping(uint256 => uint256) private _stickerAmountLeft;
-    uint256 private _currentTokenID = 0;
+    // uint256 private _currentTokenID = 0;
     address private _holdTokenAddress;
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant ACCESS_STICKER_ROLE =
@@ -40,9 +40,9 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
     /**
      * @dev Revert with a standard message if `sticker` is not sale.
      */
-    modifier onlyStickerSale(uint256 stickerId) {
+    modifier onlyStickerSale(uint256 tokenId) {
         require(
-            _stickerData[stickerId].priceType != StickerPriceType.None,
+            _stickerData[tokenId].priceType != StickerPriceType.None,
             "DMTPMarket: sticker not for sale"
         );
         _;
@@ -51,16 +51,17 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
     /**
      * @dev Revert with a standard message if `msg.sender` is not in whitelist to Buy sticker, in case sticker have whitelist.
      */
-    modifier onlyWhitelist(uint256 stickerId) {
-        if (_whitelist[stickerId].whitelistType == WhitelistType.Fixed)
+    modifier onlyWhitelist(uint256 tokenId) {
+        if (_whitelist[tokenId].whitelistType == WhitelistType.Fixed)
             require(
-                _whitelist[stickerId].whitelist[msg.sender],
+                _whitelist[tokenId].whitelist[msg.sender],
                 "DMTPMarket: not in whitelist"
             );
         _;
     }
 
     function setStickerPrice(
+        uint256 tokenId,
         string memory uri,
         uint256 amount,
         address token,
@@ -74,34 +75,29 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
             if (price > 0) priceType = StickerPriceType.Fixed;
             else priceType = StickerPriceType.Free;
         }
-        _currentTokenID++;
-        _stickerData[_currentTokenID] = Sticker(
-            uri,
-            priceType,
-            token,
-            price,
-            amount
-        );
-        _stickerAmountLeft[_currentTokenID] = amount;
+        // _currentTokenID++;
+        _stickerData[tokenId] = Sticker(uri, priceType, token, price, amount);
+        _stickerAmountLeft[tokenId] = amount;
         if (whitelist.length != 0) {
-            _whitelist[_currentTokenID].whitelistType = WhitelistType.Fixed;
+            _whitelist[tokenId].whitelistType = WhitelistType.Fixed;
             for (uint256 i = 0; i < whitelist.length; i++) {
-                _whitelist[_currentTokenID].whitelist[whitelist[i]] = true;
+                _whitelist[tokenId].whitelist[whitelist[i]] = true;
             }
         }
         emit NewSticker(
-            _currentTokenID,
+            tokenId,
             price,
             token,
             amount,
             priceType,
-            _whitelist[_currentTokenID].whitelistType,
+            _whitelist[tokenId].whitelistType,
             joinAddress(whitelist)
         );
     }
 
     function setStickerPriceBatch(
-        string[] memory stickerUris,
+        uint256[] memory tokenIds,
+        string[] memory tokenUris,
         uint256[] memory amounts,
         address[] memory tokens,
         uint256[] memory prices,
@@ -109,15 +105,16 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         address[][] memory whitelists
     ) public override onlyMintRole {
         require(
-            stickerUris.length == prices.length &&
-                stickerUris.length == amounts.length &&
-                stickerUris.length == sellables.length &&
-                stickerUris.length == whitelists.length,
+            tokenUris.length == prices.length &&
+                tokenUris.length == amounts.length &&
+                tokenUris.length == sellables.length &&
+                tokenUris.length == whitelists.length,
             "DMTPMarket: length not match"
         );
-        for (uint256 i = 0; i < stickerUris.length; i++) {
+        for (uint256 i = 0; i < tokenUris.length; i++) {
             setStickerPrice(
-                stickerUris[i],
+                tokenIds[i],
+                tokenUris[i],
                 amounts[i],
                 tokens[i],
                 prices[i],
@@ -140,19 +137,19 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         return _stickerAmountLeft[id];
     }
 
-    function buy(uint256 stickerId)
+    function buy(uint256 tokenId)
         external
         override
-        onlyStickerSale(stickerId)
-        onlyWhitelist(stickerId)
+        onlyStickerSale(tokenId)
+        onlyWhitelist(tokenId)
     {
         require(
-            _sticker.balanceOf(msg.sender, stickerId) == 0,
+            _sticker.balanceOf(msg.sender, tokenId) == 0,
             "DMTPMarket: only own one sticker"
         );
-        require(_stickerAmountLeft[stickerId] > 0, "DMTPMarket: sold out");
-        _stickerAmountLeft[stickerId]--;
-        Sticker memory sticker = _stickerData[stickerId];
+        require(_stickerAmountLeft[tokenId] > 0, "DMTPMarket: sold out");
+        _stickerAmountLeft[tokenId]--;
+        Sticker memory sticker = _stickerData[tokenId];
         if (sticker.priceType == StickerPriceType.Fixed) {
             IERC20(sticker.token).transferFrom(
                 msg.sender,
@@ -160,8 +157,8 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
                 sticker.price
             );
         }
-        _sticker.mint(stickerId, msg.sender, 1, sticker.uri);
-        emit Buy(stickerId, msg.sender, sticker.price, sticker.token);
+        _sticker.mint(tokenId, msg.sender, 1, sticker.uri);
+        emit Buy(tokenId, msg.sender, sticker.price, sticker.token);
     }
 
     function joinAddress(address[] memory addresses)
