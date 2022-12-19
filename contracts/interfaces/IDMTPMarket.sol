@@ -43,6 +43,7 @@ interface IDMTPMarket is IAccessControl {
     );
 
     function setStickerPrice(
+        uint256 tokenId,
         string memory uri,
         uint256 amount,
         address token,
@@ -52,6 +53,7 @@ interface IDMTPMarket is IAccessControl {
     ) external;
 
     function setStickerPriceBatch(
+        uint256[] memory stickerIds,
         string[] memory stickerUris,
         uint256[] memory amounts,
         address[] memory tokens,

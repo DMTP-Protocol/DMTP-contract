@@ -4,15 +4,18 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "./interfaces/ISticker.sol";
 import "./interfaces/IDMTPMarket.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Sticker is ISticker, ERC1155 {
+contract Sticker is ISticker, ERC1155, Ownable {
     mapping(uint256 => string) private _tokenURIs;
     bytes32 public constant ACCESS_STICKER_ROLE =
         keccak256("ACCESS_STICKER_ROLE");
     IDMTPMarket private _market;
 
-    constructor(address market) ERC1155("") {
-        _market = IDMTPMarket(market);
+    constructor() ERC1155("") {}
+
+    function setMarket(address _marketAddress) public onlyOwner{
+        _market = IDMTPMarket(_marketAddress);
     }
 
     function mint(
