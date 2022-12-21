@@ -151,10 +151,13 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         _stickerAmountLeft[tokenId]--;
         Sticker memory sticker = _stickerData[tokenId];
         if (sticker.priceType == StickerPriceType.Fixed) {
-            IERC20(sticker.token).transferFrom(
-                msg.sender,
-                _holdTokenAddress,
-                sticker.price
+            require(
+                IERC20(sticker.token).transferFrom(
+                    msg.sender,
+                    _holdTokenAddress,
+                    sticker.price
+                ),
+                "DMTPMarket: transfer failed"
             );
         }
         _sticker.mint(tokenId, msg.sender, 1, sticker.uri);
