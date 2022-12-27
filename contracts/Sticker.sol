@@ -6,7 +6,7 @@ import "./interfaces/ISticker.sol";
 import "./interfaces/IDMTPMarket.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Sticker is ISticker, ERC1155, Ownable {
+contract Sticker is ISticker, Ownable, ERC1155 {
     mapping(uint256 => string) private _tokenURIs;
     bytes32 public constant ACCESS_STICKER_ROLE =
         keccak256("ACCESS_STICKER_ROLE");
