@@ -22,18 +22,13 @@ interface IDMTPMarket is IAccessControl {
         uint256 amount;
     }
 
-    struct Whitelist {
-        WhitelistType whitelistType;
-        mapping(address => bool) whitelist;
-    }
     event NewSticker(
         uint256 indexed stickerId,
         uint256 indexed price,
         address token,
         uint256 amount,
         StickerPriceType priceType,
-        WhitelistType whitelistType,
-        string whitelist
+        bytes32 whitelist
     );
     event Buy(
         uint256 indexed stickerId,
@@ -49,7 +44,7 @@ interface IDMTPMarket is IAccessControl {
         address token,
         uint256 price,
         bool sellable,
-        address[] memory whitelist
+        bytes32 whitelist
     ) external;
 
     function setStickerPriceBatch(
@@ -59,10 +54,10 @@ interface IDMTPMarket is IAccessControl {
         address[] memory tokens,
         uint256[] memory prices,
         bool[] memory sellables,
-        address[][] memory whitelists
+        bytes32[] memory whitelists
     ) external;
 
-    function buy(uint256 stickerId) external;
+    function buy(uint256 stickerId, bytes32[] memory _merkleProof) external;
 
     function stickerURI(uint256 id) external view returns (string memory);
 

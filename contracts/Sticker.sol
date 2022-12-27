@@ -14,7 +14,7 @@ contract Sticker is ISticker, ERC1155, Ownable {
 
     constructor() ERC1155("") {}
 
-    function setMarket(address _marketAddress) public onlyOwner{
+    function setMarket(address _marketAddress) public onlyOwner {
         _market = IDMTPMarket(_marketAddress);
     }
 
@@ -50,6 +50,6 @@ contract Sticker is ISticker, ERC1155, Ownable {
     }
 
     function uri(uint256 id) public view override returns (string memory) {
-        return _market.stickerURI(id);
+        return _tokenURIs[id];
     }
 }

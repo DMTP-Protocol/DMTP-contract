@@ -2,15 +2,15 @@
 pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./interfaces/IDMTPMarket.sol";
 import "./interfaces/ISticker.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract DMTPMarket is AccessControl, IDMTPMarket {
-    mapping(uint256 => Whitelist) private _whitelist;
+    mapping(uint256 => bytes32) private _whitelistTopHash;
     mapping(uint256 => Sticker) private _stickerData;
     mapping(uint256 => uint256) private _stickerAmountLeft;
-    // uint256 private _currentTokenID = 0;
     address private _holdTokenAddress;
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant ACCESS_STICKER_ROLE =
@@ -51,12 +51,12 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
     /**
      * @dev Revert with a standard message if `msg.sender` is not in whitelist to Buy sticker, in case sticker have whitelist.
      */
-    modifier onlyWhitelist(uint256 tokenId) {
-        if (_whitelist[tokenId].whitelistType == WhitelistType.Fixed)
-            require(
-                _whitelist[tokenId].whitelist[msg.sender],
-                "DMTPMarket: not in whitelist"
-            );
+    modifier onlyWhitelist(bytes32[] memory _merkleProof, uint256 tokenId) {
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
+        require(
+            MerkleProof.verify(_merkleProof, _whitelistTopHash[tokenId], leaf),
+            "Invalid Merkle Proof."
+        );
         _;
     }
 
@@ -67,7 +67,7 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         address token,
         uint256 price,
         bool sellable,
-        address[] memory whitelist
+        bytes32 whitelist
     ) public override onlyMintRole {
         require(amount > 0, "DMTPMarket: sticker amount not enough");
         StickerPriceType priceType;
@@ -75,24 +75,10 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
             if (price > 0) priceType = StickerPriceType.Fixed;
             else priceType = StickerPriceType.Free;
         }
-        // _currentTokenID++;
         _stickerData[tokenId] = Sticker(uri, priceType, token, price, amount);
         _stickerAmountLeft[tokenId] = amount;
-        if (whitelist.length != 0) {
-            _whitelist[tokenId].whitelistType = WhitelistType.Fixed;
-            for (uint256 i = 0; i < whitelist.length; i++) {
-                _whitelist[tokenId].whitelist[whitelist[i]] = true;
-            }
-        }
-        emit NewSticker(
-            tokenId,
-            price,
-            token,
-            amount,
-            priceType,
-            _whitelist[tokenId].whitelistType,
-            joinAddress(whitelist)
-        );
+        _whitelistTopHash[tokenId] = whitelist;
+        emit NewSticker(tokenId, price, token, amount, priceType, whitelist);
     }
 
     function setStickerPriceBatch(
@@ -102,7 +88,7 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         address[] memory tokens,
         uint256[] memory prices,
         bool[] memory sellables,
-        address[][] memory whitelists
+        bytes32[] memory whitelists
     ) public override onlyMintRole {
         require(
             tokenUris.length == prices.length &&
@@ -137,11 +123,11 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         return _stickerAmountLeft[id];
     }
 
-    function buy(uint256 tokenId)
+    function buy(uint256 tokenId, bytes32[] memory _merkleProof)
         external
         override
         onlyStickerSale(tokenId)
-        onlyWhitelist(tokenId)
+        onlyWhitelist(_merkleProof, tokenId)
     {
         require(
             _sticker.balanceOf(msg.sender, tokenId) == 0,
@@ -162,23 +148,5 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         }
         _sticker.mint(tokenId, msg.sender, 1, sticker.uri);
         emit Buy(tokenId, msg.sender, sticker.price, sticker.token);
-    }
-
-    function joinAddress(address[] memory addresses)
-        private
-        pure
-        returns (string memory)
-    {
-        bytes memory output;
-
-        for (uint256 i = 0; i < addresses.length; i++) {
-            output = abi.encodePacked(
-                output,
-                ",",
-                Strings.toHexString(addresses[i])
-            );
-        }
-
-        return string(output);
     }
 }
