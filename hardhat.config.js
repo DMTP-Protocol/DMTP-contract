@@ -19,6 +19,7 @@ module.exports = {
     polygon: {
       url: process.env.NETWORK_RPC,
       accounts: [`${PRIVATE_KEY}`],
+      gasPrice: 35000000000,
     },
   },
   etherscan: {
