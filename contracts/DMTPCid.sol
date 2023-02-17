@@ -16,4 +16,16 @@ contract DMTPCid is Ownable {
     function storeCID(string memory _cid) public onlyOwner {
         cids.push(_cid);
     }
+
+    function getKeys(address _user) public view returns (string memory) {
+        return DMTPkeys[_user];
+    }
+
+    function getCids() public view returns (string[] memory) {
+        return cids;
+    }
+
+    function getCid(uint256 index) public view returns (string memory) {
+        return cids[index];
+    }
 }
