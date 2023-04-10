@@ -87,6 +87,10 @@ describe("Market contract", function () {
     expect(stickerDataAfterBought["amountLeft"]).to.equal(`${amount - 1}`);
   };
 
+  const checkOwner = async (stickerId, owner) => {
+    expect(await dmtpSticker.balanceOf(owner, stickerId)).to.equal("1");
+  };
+
   beforeEach(async function () {
     const MaticWETH = await ethers.getContractFactory("MaticWETH");
     const DMTPMarket = await ethers.getContractFactory("DMTPMarket");
@@ -110,6 +114,7 @@ describe("Market contract", function () {
     const uri = "ipfs://Q";
     await listNFT(stickerId, price, amount, dmtp.address, uri);
     await buyNFT(stickerId, price, amount, dmtp.address);
+    await checkOwner(stickerId, clientAddress);
   });
 
   it("list Sticker: id 1 - price 1 WETH - amount 10 - no whitelist | Client buy", async function () {
@@ -119,6 +124,7 @@ describe("Market contract", function () {
     const uri = "ipfs://Q";
     await listNFT(stickerId, price, amount, maticWETH.address, uri);
     await buyNFT(stickerId, price, amount, maticWETH.address);
+    await checkOwner(stickerId, clientAddress);
   });
 
   it("list Sticker: id 1 - price 1 DMTP - amount 10 - with whitelist | Client buy", async function () {
@@ -143,6 +149,7 @@ describe("Market contract", function () {
       dmtp.address,
       whitelistIncludeClient
     );
+    await checkOwner(stickerId, clientAddress);
   });
 
   it("list Sticker: id 1 - price 1 WETH - amount 10 - with whitelist | Client buy", async function () {
@@ -167,6 +174,7 @@ describe("Market contract", function () {
       maticWETH.address,
       whitelistIncludeClient
     );
+    await checkOwner(stickerId, clientAddress);
   });
 
   it("list Sticker: id 1 - price 1 DMTP - amount 10 - with whitelist | Client not in whitelist", async function () {
@@ -215,7 +223,7 @@ describe("Market contract", function () {
     ).to.be.revertedWith("Invalid Merkle Proof");
   });
 
-  it("list Sticker: id 1 - price 1 DMTP - amount 10 - with whitelist | disable sticker | Client buy disable sticker", async function () {
+  it("list Sticker: id 1 - price 1 DMTP - amount 10 - with whitelist | disable sticker | Client cant not buy disable sticker", async function () {
     const stickerId = 1;
     const price = etherjs.utils.parseEther("1");
     const amount = 10;
@@ -230,9 +238,36 @@ describe("Market contract", function () {
       uri,
       whitelistIncludeClient
     );
-    await dmtpMarket.disableSticker(stickerId);
+    await dmtpMarket.disableListedSticker(stickerId);
     await expect(
       buyNFT(stickerId, price, amount, dmtp.address, whitelistIncludeClient)
-    ).to.be.revertedWith("Sticker is disabled");
+    ).to.be.revertedWith("DMTPMarket: sticker not for sale");
+  });
+
+  it("list Sticker: id 1 - price 1 DMTP - amount 10 - with whitelist | disable sticker | Client cant not buy disable sticker | enable sticker | Client can buy sticker", async function () {
+    const stickerId = 1;
+    const price = etherjs.utils.parseEther("1");
+    const amount = 10;
+    const uri = "ipfs://Q";
+
+    const whitelistIncludeClient = [...whitelistAddresses, clientAddress];
+    await listNFT(
+      stickerId,
+      price,
+      amount,
+      dmtp.address,
+      uri,
+      whitelistIncludeClient
+    );
+    await dmtpMarket.disableListedSticker(stickerId);
+    await expect(
+      buyNFT(stickerId, price, amount, dmtp.address, whitelistIncludeClient)
+    ).to.be.revertedWith("DMTPMarket: sticker not for sale");
+
+    await dmtpMarket.enableListedSticker(stickerId);
+    await expect(
+      buyNFT(stickerId, price, amount, dmtp.address, whitelistIncludeClient)
+    ).to.be.ok;
+    await checkOwner(stickerId, clientAddress);
   });
 });
