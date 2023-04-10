@@ -265,9 +265,13 @@ describe("Market contract", function () {
     ).to.be.revertedWith("DMTPMarket: sticker not for sale");
 
     await dmtpMarket.enableListedSticker(stickerId);
-    await expect(
-      buyNFT(stickerId, price, amount, dmtp.address, whitelistIncludeClient)
-    ).to.be.ok;
+    await buyNFT(
+      stickerId,
+      price,
+      amount,
+      dmtp.address,
+      whitelistIncludeClient
+    );
     await checkOwner(stickerId, clientAddress);
   });
 });
