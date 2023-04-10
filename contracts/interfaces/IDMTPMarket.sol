@@ -9,17 +9,14 @@ interface IDMTPMarket is IAccessControl {
         Free
     }
 
-    enum WhitelistType {
-        None,
-        Fixed
-    }
-
     struct Sticker {
         string uri;
         StickerPriceType priceType;
         address token;
         uint256 price;
         uint256 amount;
+        bytes32 whitelistTopHash;
+        uint256 amountLeft;
     }
 
     event NewSticker(
@@ -28,7 +25,7 @@ interface IDMTPMarket is IAccessControl {
         address token,
         uint256 amount,
         StickerPriceType priceType,
-        bytes32 whitelist
+        bytes32 whitelistTopHash
     );
     event Buy(
         uint256 indexed stickerId,
@@ -37,29 +34,30 @@ interface IDMTPMarket is IAccessControl {
         address token
     );
 
-    function setStickerPrice(
+    event DisablelSticker(uint256 indexed stickerId);
+    event EnableSticker(uint256 indexed stickerId);
+
+    function listSticker(
         uint256 tokenId,
-        string memory uri,
+        string calldata uri,
         uint256 amount,
         address token,
         uint256 price,
-        bool sellable,
         bytes32 whitelist
     ) external;
 
-    function setStickerPriceBatch(
-        uint256[] memory stickerIds,
-        string[] memory stickerUris,
-        uint256[] memory amounts,
-        address[] memory tokens,
-        uint256[] memory prices,
-        bool[] memory sellables,
-        bytes32[] memory whitelists
+    function listStickerBatch(
+        uint256[] calldata stickerIds,
+        string[] calldata stickerUris,
+        uint256[] calldata amounts,
+        address[] calldata tokens,
+        uint256[] calldata prices,
+        bytes32[] calldata whitelists
     ) external;
 
-    function buy(uint256 stickerId, bytes32[] memory _merkleProof) external;
+    function disableListedSticker(uint256 stickerId) external;
 
-    function stickerURI(uint256 id) external view returns (string memory);
+    function enableListedSticker(uint256 stickerId) external;
 
-    function stickerLeft(uint256 id) external view returns (uint256);
+    function buy(uint256 stickerId, bytes32[] calldata _merkleProof) external;
 }

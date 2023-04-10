@@ -7,13 +7,13 @@ interface ISticker is IERC1155 {
         uint256 id,
         address account,
         uint256 amount,
-        string memory _uri
+        string calldata _uri
     ) external;
 
     function mintBatch(
-        uint256[] memory ids,
+        uint256[] calldata ids,
         address to,
-        uint256[] memory amounts,
-        string[] memory uris
+        uint256[] calldata amounts,
+        string[] calldata uris
     ) external;
 }

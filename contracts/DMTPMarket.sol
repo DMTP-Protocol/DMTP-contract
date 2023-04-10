@@ -8,13 +8,9 @@ import "./interfaces/IDMTPMarket.sol";
 import "./interfaces/ISticker.sol";
 
 contract DMTPMarket is AccessControl, IDMTPMarket {
-    mapping(uint256 => bytes32) private _whitelistTopHash;
     mapping(uint256 => Sticker) private _stickerData;
-    mapping(uint256 => uint256) private _stickerAmountLeft;
     address private _holdTokenAddress;
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    bytes32 public constant ACCESS_STICKER_ROLE =
-        keccak256("ACCESS_STICKER_ROLE");
     ISticker private _sticker;
 
     constructor(address adminAddress, address holdTokenAddress) {
@@ -26,7 +22,6 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
     function setSticker(address sticker) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_sticker == ISticker(address(0)), "DMTPMarket: ALREADY_SET");
         _sticker = ISticker(sticker);
-        _grantRole(ACCESS_STICKER_ROLE, address(this));
     }
 
     /**
@@ -51,79 +46,122 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
     /**
      * @dev Revert with a standard message if `msg.sender` is not in whitelist to Buy sticker, in case sticker have whitelist.
      */
-    modifier onlyWhitelist(bytes32[] memory _merkleProof, uint256 tokenId) {
+    modifier onlyWhitelist(bytes32[] calldata _merkleProof, uint256 tokenId) {
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
         require(
-            MerkleProof.verify(_merkleProof, _whitelistTopHash[tokenId], leaf),
-            "Invalid Merkle Proof."
+            _stickerData[tokenId].whitelistTopHash == bytes32(0) ||
+                MerkleProof.verify(
+                    _merkleProof,
+                    _stickerData[tokenId].whitelistTopHash,
+                    leaf
+                ),
+            "Invalid Merkle Proof"
         );
         _;
     }
 
-    function setStickerPrice(
+    function listSticker(
         uint256 tokenId,
-        string memory uri,
+        string calldata uri,
         uint256 amount,
         address token,
         uint256 price,
-        bool sellable,
-        bytes32 whitelist
+        bytes32 whitelistTopHash
     ) public override onlyMintRole {
         require(amount > 0, "DMTPMarket: sticker amount not enough");
-        StickerPriceType priceType;
-        if (sellable) {
-            if (price > 0) priceType = StickerPriceType.Fixed;
-            else priceType = StickerPriceType.Free;
-        }
-        _stickerData[tokenId] = Sticker(uri, priceType, token, price, amount);
-        _stickerAmountLeft[tokenId] = amount;
-        _whitelistTopHash[tokenId] = whitelist;
-        emit NewSticker(tokenId, price, token, amount, priceType, whitelist);
+        StickerPriceType priceType = price > 0
+            ? StickerPriceType.Fixed
+            : StickerPriceType.Free;
+
+        _stickerData[tokenId] = Sticker(
+            uri,
+            priceType,
+            token,
+            price,
+            amount,
+            whitelistTopHash,
+            amount
+        );
+        emit NewSticker(
+            tokenId,
+            price,
+            token,
+            amount,
+            priceType,
+            whitelistTopHash
+        );
     }
 
-    function setStickerPriceBatch(
-        uint256[] memory tokenIds,
-        string[] memory tokenUris,
-        uint256[] memory amounts,
-        address[] memory tokens,
-        uint256[] memory prices,
-        bool[] memory sellables,
-        bytes32[] memory whitelists
+    function listStickerBatch(
+        uint256[] calldata tokenIds,
+        string[] calldata tokenUris,
+        uint256[] calldata amounts,
+        address[] calldata tokens,
+        uint256[] calldata prices,
+        bytes32[] calldata whitelistTopHashs
     ) public override onlyMintRole {
         require(
             tokenUris.length == prices.length &&
                 tokenUris.length == amounts.length &&
-                tokenUris.length == sellables.length &&
-                tokenUris.length == whitelists.length,
+                tokenUris.length == whitelistTopHashs.length,
             "DMTPMarket: length not match"
         );
         for (uint256 i = 0; i < tokenUris.length; i++) {
-            setStickerPrice(
+            listSticker(
                 tokenIds[i],
                 tokenUris[i],
                 amounts[i],
                 tokens[i],
                 prices[i],
-                sellables[i],
-                whitelists[i]
+                whitelistTopHashs[i]
             );
         }
     }
 
-    function stickerURI(uint256 id)
-        public
-        view
-        override
-        returns (string memory)
-    {
-        return _stickerData[id].uri;
+    function disableListedSticker(uint256 tokenId) public onlyMintRole {
+        require(
+            _stickerData[tokenId].priceType != StickerPriceType.None,
+            "DMTPMarket: sticker not for sale"
+        );
+        _stickerData[tokenId].priceType = StickerPriceType.None;
+        emit DisablelSticker(tokenId);
     }
 
-    function stickerLeft(uint256 id) public view override returns (uint256) {
-        return _stickerAmountLeft[id];
+    function disableListedStickerBatch(
+        uint256[] calldata tokenIds
+    ) public onlyMintRole {
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            disableListedSticker(tokenIds[i]);
+        }
     }
 
-    function buy(uint256 tokenId, bytes32[] memory _merkleProof)
+    function enableListedSticker(uint256 tokenId) public onlyMintRole {
+        require(
+            _stickerData[tokenId].priceType == StickerPriceType.None,
+            "DMTPMarket: sticker already for sale"
+        );
+        _stickerData[tokenId].priceType = _stickerData[tokenId].price > 0
+            ? StickerPriceType.Fixed
+            : StickerPriceType.Free;
+        emit EnableSticker(tokenId);
+    }
+
+    function enableListedStickerBatch(
+        uint256[] calldata tokenIds
+    ) public onlyMintRole {
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            enableListedSticker(tokenIds[i]);
+        }
+    }
+
+    function stickerData(uint256 id) public view returns (Sticker memory) {
+        return _stickerData[id];
+    }
+
+    function buy(
+        uint256 tokenId,
+        bytes32[] calldata _merkleProof
+    )
         external
         override
         onlyStickerSale(tokenId)
@@ -133,9 +171,9 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
             _sticker.balanceOf(msg.sender, tokenId) == 0,
             "DMTPMarket: only own one sticker"
         );
-        require(_stickerAmountLeft[tokenId] > 0, "DMTPMarket: sold out");
-        _stickerAmountLeft[tokenId]--;
-        Sticker memory sticker = _stickerData[tokenId];
+        Sticker storage sticker = _stickerData[tokenId];
+        require(sticker.amountLeft > 0, "DMTPMarket: sold out");
+        sticker.amountLeft = sticker.amountLeft - 1;
         if (sticker.priceType == StickerPriceType.Fixed) {
             require(
                 IERC20(sticker.token).transferFrom(

@@ -20,7 +20,7 @@ const runComman = (command) => {
 };
 
 async function main() {
-  const config = require("../config.json");
+  const config = require(process.argv[2]);
   for (let i = 0; i < Object.values(config).length; i++) {
     const contract = Object.values(config)[i];
     const inputStr = contract?.input ? contract.input.join(" ") : "";
@@ -29,7 +29,7 @@ async function main() {
       contract.address
     );
     await runComman(
-      `hardhat verify --contract contracts/${contract.contractName}.sol:${contract.contractName}  --network polygon ${contract.address} ${inputStr}`
+      `hardhat verify --contract contracts/${contract.contractName}.sol:${contract.contractName} --network polygon ${contract.address} ${inputStr}`
     );
   }
 }

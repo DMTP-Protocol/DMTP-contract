@@ -2,6 +2,7 @@ require("dotenv").config();
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
+require("hardhat-gas-reporter");
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const API_KEY = process.env.API_KEY;
@@ -24,5 +25,8 @@ module.exports = {
   },
   etherscan: {
     apiKey: API_KEY,
+  },
+  gasReporter: {
+    currency: "USD",
   },
 };
