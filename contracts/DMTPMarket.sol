@@ -124,7 +124,7 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
             "DMTPMarket: sticker not for sale"
         );
         _stickerData[tokenId].priceType = StickerPriceType.None;
-        emit DisablelSticker(tokenId);
+        emit DisableSticker(tokenId);
     }
 
     function disableListedStickerBatch(

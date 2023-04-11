@@ -34,7 +34,7 @@ interface IDMTPMarket is IAccessControl {
         address token
     );
 
-    event DisablelSticker(uint256 indexed stickerId);
+    event DisableSticker(uint256 indexed stickerId);
     event EnableSticker(uint256 indexed stickerId);
 
     function listSticker(
