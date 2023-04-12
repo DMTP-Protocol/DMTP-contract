@@ -68,6 +68,11 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         uint256 price,
         bytes32 whitelistTopHash
     ) public override onlyMintRole {
+        require(token != address(0), "DMTPMarket: token address is zero");
+        require(
+            _stickerData[tokenId].token == address(0),
+            "DMTPMarket: sticker already for sale"
+        );
         require(amount > 0, "DMTPMarket: sticker amount not enough");
         StickerPriceType priceType = price > 0
             ? StickerPriceType.Fixed
