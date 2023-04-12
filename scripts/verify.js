@@ -20,7 +20,8 @@ const runComman = (command) => {
 };
 
 async function main() {
-  const config = require(process.argv[2]);
+
+  const config = require(`../${process.argv[2]}`);
   for (let i = 0; i < Object.values(config).length; i++) {
     const contract = Object.values(config)[i];
     const inputStr = contract?.input ? contract.input.join(" ") : "";

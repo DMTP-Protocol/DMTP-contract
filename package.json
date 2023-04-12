@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "compile": "truffle compile",
+    "compile": "hardhat compile",
     "verify": "node ./scripts/verify.js",
-    "deploy": "yarn compile && hardhat run --network polygon ./scripts/deploy.js"
+    "deploy:market": "yarn compile && hardhat run --network polygon ./scripts/deploy-sticker-market.js"
   },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",

@@ -43,6 +43,5 @@ cache
 artifacts
 test.sol
 
-config.json
 test.js
 .env

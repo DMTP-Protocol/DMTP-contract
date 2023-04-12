@@ -22,27 +22,34 @@ async function main() {
   await dmtpmarket.setSticker(sticker.address);
   await sticker.setMarket(dmtpmarket.address);
 
+  const dmtpJson = require("../artifacts/contracts/DMTP.sol/DMTP.json");
+  const dmtpStickerJson = require("../artifacts/contracts/DMTPSticker.sol/DMTPSticker.json");
+  const dmtpMarketJson = require("../artifacts/contracts/DMTPMarket.sol/DMTPMarket.json");
   const contractDeployed = {
     DMTP: {
       address: dmtp.address,
-      abi: require("../build/contracts/DMTP.json").abi,
-      contractName: require("../build/contracts/DMTP.json").contractName,
+      abi: dmtpJson.abi,
+      contractName: dmtpJson.contractName,
+      input: [],
     },
     DMTPSticker: {
       address: sticker.address,
-      abi: require("../build/contracts/DMTPSticker.json").abi,
-      contractName: require("../build/contracts/DMTPSticker.json").contractName,
+      abi: dmtpStickerJson.abi,
+      contractName: dmtpStickerJson.contractName,
       input: [],
     },
     DMTPMarket: {
       address: dmtpmarket.address,
-      abi: require("../build/contracts/DMTPMarket.json").abi,
-      contractName: require("../build/contracts/DMTPMarket.json").contractName,
+      abi: dmtpMarketJson.abi,
+      contractName: dmtpMarketJson.contractName,
       input: [deployer.address, deployer.address],
     },
   };
 
-  fs.writeFileSync("./sticker-market-abi.json", JSON.stringify(contractDeployed));
+  fs.writeFileSync(
+    "./sticker-market-abi.json",
+    JSON.stringify(contractDeployed)
+  );
   // log deploy contracts
   Object.values(contractDeployed).forEach((contract) => {
     console.log(
