@@ -274,4 +274,33 @@ describe("Market contract", function () {
     );
     await checkOwner(stickerId, clientAddress);
   });
+
+  it("list Sticker: id 1 - price 1 DMTP - amount 10 - with whitelist | listing again with same id", async function () {
+    const stickerId = 1;
+    const price = etherjs.utils.parseEther("1");
+    const amount = 10;
+    const uri = "ipfs://Q";
+
+    const whitelistIncludeClient = [...whitelistAddresses, clientAddress];
+    await listNFT(
+      stickerId,
+      price,
+      amount,
+      dmtp.address,
+      uri,
+      whitelistIncludeClient
+    );
+    
+    await expect(
+      listNFT(
+        stickerId,
+        price,
+        amount,
+        maticWETH.address,
+        uri,
+        whitelistIncludeClient
+      )
+    ).to.be.revertedWith("DMTPMarket: sticker already for sale");
+    
+  });
 });

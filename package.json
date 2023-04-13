@@ -1,6 +1,7 @@
 {
   "scripts": {
     "compile": "hardhat compile",
+    "test": "hardhat test",
     "verify": "node ./scripts/verify.js",
     "deploy:market": "yarn compile && hardhat run --network polygon ./scripts/deploy-sticker-market.js"
   },
