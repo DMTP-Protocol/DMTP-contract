@@ -11,23 +11,25 @@ async function main() {
 
   // deploy contracts
   const sticker = await Sticker.deploy();
-  const dmtpmarket = await DMTPMarket.deploy(adminAddress, adminAddress);
+  console.log("Sticker address: ", sticker.address);
+  const dmtpmarket = await DMTPMarket.deploy(
+    adminAddress,
+    adminAddress,
+    sticker.address
+  );
+  console.log("DMTPMarket address: ", dmtpmarket.address);
   await sticker.deployed();
+  console.log("Sticker deployed to:", sticker.address);
   await dmtpmarket.deployed();
-  await dmtpmarket.setSticker(sticker.address);
+  console.log("DMTPMarket deployed to:", dmtpmarket.address);
   await sticker.setMarket(dmtpmarket.address);
+  console.log("DMTPMarket address set to Sticker");
   await sticker.transferOwnership(adminAddress);
+  console.log("Sticker ownership transferred to admin");
 
-  // const dmtpJson = require("../artifacts/contracts/DMTP.sol/DMTP.json");
   const dmtpStickerJson = require("../artifacts/contracts/DMTPSticker.sol/DMTPSticker.json");
   const dmtpMarketJson = require("../artifacts/contracts/DMTPMarket.sol/DMTPMarket.json");
   const contractDeployed = {
-    // DMTP: {
-    //   address: dmtp.address,
-    //   abi: dmtpJson.abi,
-    //   contractName: dmtpJson.contractName,
-    //   input: [],
-    // },
     DMTPSticker: {
       address: sticker.address,
       abi: dmtpStickerJson.abi,
@@ -38,7 +40,7 @@ async function main() {
       address: dmtpmarket.address,
       abi: dmtpMarketJson.abi,
       contractName: dmtpMarketJson.contractName,
-      input: [adminAddress, adminAddress],
+      input: [adminAddress, adminAddress, sticker.address],
     },
   };
 

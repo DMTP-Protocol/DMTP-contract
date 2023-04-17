@@ -13,15 +13,12 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     ISticker private _sticker;
 
-    constructor(address adminAddress, address holdTokenAddress) {
+    constructor(address adminAddress, address holdTokenAddress,address sticker) {
         _grantRole(DEFAULT_ADMIN_ROLE, adminAddress);
         _grantRole(MINTER_ROLE, adminAddress);
         _holdTokenAddress = holdTokenAddress;
-    }
-
-    function setSticker(address sticker) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_sticker == ISticker(address(0)), "DMTPMarket: ALREADY_SET");
         _sticker = ISticker(sticker);
+
     }
 
     function setHoldTokenAddress(address newHoldeTokenAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {

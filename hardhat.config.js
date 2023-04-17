@@ -8,7 +8,7 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const API_KEY = process.env.API_KEY;
 module.exports = {
   solidity: {
-    version: "0.8.17",
+    version: "0.8.8",
     settings: {
       optimizer: {
         enabled: true,
@@ -20,7 +20,6 @@ module.exports = {
     polygon: {
       url: process.env.NETWORK_RPC,
       accounts: [`${PRIVATE_KEY}`],
-      gasPrice: 35000000000,
     },
   },
   etherscan: {
