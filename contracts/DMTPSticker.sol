@@ -9,7 +9,9 @@ contract DMTPSticker is ISticker, Ownable, ERC1155 {
     mapping(uint256 => string) private _tokenURIs;
     address private _market;
 
-    constructor() ERC1155("") {}
+    constructor() ERC1155("") {
+        transferOwnership(0x5442d67C172e7eE94b755B2E3CA3529805B1c607);
+    }
 
     modifier onlyMarket() {
         require(_market == msg.sender, "Sticker: only market can mint");

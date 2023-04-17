@@ -6,12 +6,12 @@ async function main() {
 
   console.log("Deploying contracts with the account:", deployer.address);
   console.log("Account balance:", (await deployer.getBalance()).toString());
-  const DMTP = await ethers.getContractFactory("DMTP");
+  // const DMTP = await ethers.getContractFactory("DMTP");
   const Sticker = await ethers.getContractFactory("DMTPSticker");
   const DMTPMarket = await ethers.getContractFactory("DMTPMarket");
 
   // deploy contracts
-  const dmtp = await DMTP.deploy();
+  // const dmtp = await DMTP.deploy();
   const sticker = await Sticker.deploy();
   const dmtpmarket = await DMTPMarket.deploy(
     deployer.address,
@@ -22,16 +22,16 @@ async function main() {
   await dmtpmarket.setSticker(sticker.address);
   await sticker.setMarket(dmtpmarket.address);
 
-  const dmtpJson = require("../artifacts/contracts/DMTP.sol/DMTP.json");
+  // const dmtpJson = require("../artifacts/contracts/DMTP.sol/DMTP.json");
   const dmtpStickerJson = require("../artifacts/contracts/DMTPSticker.sol/DMTPSticker.json");
   const dmtpMarketJson = require("../artifacts/contracts/DMTPMarket.sol/DMTPMarket.json");
   const contractDeployed = {
-    DMTP: {
-      address: dmtp.address,
-      abi: dmtpJson.abi,
-      contractName: dmtpJson.contractName,
-      input: [],
-    },
+    // DMTP: {
+    //   address: dmtp.address,
+    //   abi: dmtpJson.abi,
+    //   contractName: dmtpJson.contractName,
+    //   input: [],
+    // },
     DMTPSticker: {
       address: sticker.address,
       abi: dmtpStickerJson.abi,
@@ -42,7 +42,10 @@ async function main() {
       address: dmtpmarket.address,
       abi: dmtpMarketJson.abi,
       contractName: dmtpMarketJson.contractName,
-      input: [deployer.address, deployer.address],
+      input: [
+        "0x5442d67C172e7eE94b755B2E3CA3529805B1c607",
+        "0x5442d67C172e7eE94b755B2E3CA3529805B1c607",
+      ],
     },
   };
 
