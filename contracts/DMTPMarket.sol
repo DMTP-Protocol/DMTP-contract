@@ -24,6 +24,10 @@ contract DMTPMarket is AccessControl, IDMTPMarket {
         _sticker = ISticker(sticker);
     }
 
+    function setHoldTokenAddress(address newHoldeTokenAddress) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _holdTokenAddress = newHoldeTokenAddress;
+    }
+
     /**
      * @dev Revert with a standard message if `msg.sender` is missing `MINTER_ROLE`.
      */

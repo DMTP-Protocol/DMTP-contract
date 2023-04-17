@@ -3,24 +3,20 @@ const { ethers } = require("hardhat");
 const fs = require("fs");
 async function main() {
   const [deployer] = await ethers.getSigners();
-
+  const adminAddress = "0x5442d67C172e7eE94b755B2E3CA3529805B1c607";
   console.log("Deploying contracts with the account:", deployer.address);
   console.log("Account balance:", (await deployer.getBalance()).toString());
-  // const DMTP = await ethers.getContractFactory("DMTP");
   const Sticker = await ethers.getContractFactory("DMTPSticker");
   const DMTPMarket = await ethers.getContractFactory("DMTPMarket");
 
   // deploy contracts
-  // const dmtp = await DMTP.deploy();
   const sticker = await Sticker.deploy();
-  const dmtpmarket = await DMTPMarket.deploy(
-    deployer.address,
-    deployer.address
-  );
+  const dmtpmarket = await DMTPMarket.deploy(adminAddress, adminAddress);
   await sticker.deployed();
   await dmtpmarket.deployed();
   await dmtpmarket.setSticker(sticker.address);
   await sticker.setMarket(dmtpmarket.address);
+  await sticker.transferOwnership(adminAddress);
 
   // const dmtpJson = require("../artifacts/contracts/DMTP.sol/DMTP.json");
   const dmtpStickerJson = require("../artifacts/contracts/DMTPSticker.sol/DMTPSticker.json");
@@ -42,10 +38,7 @@ async function main() {
       address: dmtpmarket.address,
       abi: dmtpMarketJson.abi,
       contractName: dmtpMarketJson.contractName,
-      input: [
-        "0x5442d67C172e7eE94b755B2E3CA3529805B1c607",
-        "0x5442d67C172e7eE94b755B2E3CA3529805B1c607",
-      ],
+      input: [adminAddress, adminAddress],
     },
   };
 
